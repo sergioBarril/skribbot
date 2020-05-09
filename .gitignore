@@ -1,0 +1,8 @@
+driver/
+__pycache__/
+pinturilloEnv/
+
+*.env
+*.log
+
+customs.txt
