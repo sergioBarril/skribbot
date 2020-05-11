@@ -76,9 +76,9 @@ class Skribbot(discord.Client):
             response = self.messageImpugno()
 
         elif message.content == ".help":
-            channel, md = self.messageHelp(message)
-            await message.channel.send(channel)
-            await message.channel.send(md)
+            channelMessage, directMessage = self.messageHelp(message)
+            response = channelMessage
+            await message.author.send(directMessage)
         
 
         # VARIABLES        
@@ -397,7 +397,7 @@ class Skribbot(discord.Client):
 
     def messageHelp(self, message):
         channelMessage = f'Perfecto, {message.author.mention}, te he enviado los comandos por MD.'
-        response = (
+        directMessage = (
             f"¡Hola! Al habla Skribbot ({VERSION}). Aquí van los diferentes comandos:\n\n"
             "**READY**\n"
             "```"
@@ -437,7 +437,7 @@ class Skribbot(discord.Client):
             "```\n"
         )
 
-        return channelMessage, response
+        return channelMessage, directMessage
 
 client = Skribbot()
 client.run(TOKEN)
