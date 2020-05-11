@@ -50,15 +50,18 @@ class Skribbot(discord.Client):
         # MENSAJES EXACTOS
         if message.content == '.ready':
             response = await self.messageReady(message)
+        
+        if message.content == '.readyone':
+            response  = await self.messageReady(message, everyone=True)
 
         elif message.content == '.unready':
             response = self.messageUnready(message)
-        
-        elif message.content == '.link':
-            response = self.messageLink(message)
 
         elif message.content == '.readyList':
             response = self.messageReadyList(message)
+        
+        elif message.content == '.link':
+            response = self.messageLink(message)
 
         elif message.content == ".start":
             response = self.messageStart(message)
@@ -89,7 +92,7 @@ class Skribbot(discord.Client):
     #     R E A D Y    &    U N R E A D Y
     # **************************************
     
-    async def messageReady(self, message):
+    async def messageReady(self, message, everyone=False):
         """
         Handles the action if the message received was .ready
         """
@@ -99,11 +102,14 @@ class Skribbot(discord.Client):
         if self.pinturillo is None:
             self.pinturillo = Pinturillo(roomConfig = self.roomConfig)
             self.addReady(message.author)
-            response = "Venga va, ¿quién más se apunta? ¡Ya hay 1/{}! @everyone".format(self.minimo)
+
+            mention = " @everyone" if everyone else ""
+            
+            response = f"Venga va, ¿quién más se apunta?{mention} ¡Ya hay 1/{self.minimo}!"
 
         # IF NOT ADDED ALREADY
         elif self.addReady(message.author):
-            response = "¡Perfecto, {}!".format(message.author.mention)
+            response = f"¡Perfecto, {message.author.mention}!"
 
             if len(self.readyList) >= self.minimo:
                 response += " ¡Somos suficientes para que no dé pena!"
@@ -111,7 +117,7 @@ class Skribbot(discord.Client):
                     self.pinturillo.URL = "Loading"
                     await message.channel.send("Cargando sala...")
                     self.pinturillo.run()
-                    response += " Aquí tenéis el enlace: {}".format(self.pinturillo.URL)
+                    response += f" Aquí tenéis el enlace: {self.pinturillo.URL}"
                 
             else:
                 response += " Ya somos {}/{}".format(len(self.readyList), self.minimo)
@@ -364,6 +370,7 @@ class Skribbot(discord.Client):
             "**READY**\n"
             "```"
             ".ready : Te añade a la lista de gente lista para jugar. Si sois suficientes, crea una partida.\n\n"
+            ".readyone : Lo mismo que el .ready, pero con un @everyone. Usar con moderación.\n\n"
             ".unready : Te elimina de la lista de gente lista para jugar. \n\n"
             ".readyList : Muestra la gente que está ready.\n\n"
             "```\n"
@@ -396,7 +403,7 @@ class Skribbot(discord.Client):
             "\tAsí, .language te dice el idioma, y .language english cambia el idioma\n"
             "```\n"
         )
-        
+
         return channelMessage, response
 
 client = Skribbot()
