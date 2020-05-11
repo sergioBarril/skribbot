@@ -110,6 +110,12 @@ class Pinturillo():
         
         self.driver.quit()
         return True
+    
+    def quit(self):
+        """
+        Closes the ChromeDrive
+        """
+        self.driver.quit()
 
 if __name__ == "__main__":
     bot = Pinturillo()

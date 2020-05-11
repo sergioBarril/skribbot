@@ -60,6 +60,9 @@ class Skribbot(discord.Client):
         elif message.content == '.readyList':
             response = self.messageReadyList(message)
         
+        elif message.content== '.replay':
+            response = await self.messageReplay(message)
+
         elif message.content == '.link':
             response = self.messageLink(message)
 
@@ -109,10 +112,10 @@ class Skribbot(discord.Client):
 
         # IF NOT ADDED ALREADY
         elif self.addReady(message.author):
-            response = f"¡Perfecto, {message.author.mention}!"
+            response = self.getReadyMessage(message)
 
             if len(self.readyList) >= self.minimo:
-                response += " ¡Somos suficientes para que no dé pena!"
+                response += " Pero bueno... ¡somos suficientes para que no dé pena!"
                 if not self.pinturillo.URL:
                     self.pinturillo.URL = "Loading"
                     await message.channel.send("Cargando sala...")
@@ -132,6 +135,21 @@ class Skribbot(discord.Client):
             self.readyList.append(user)
             return True
         return False
+
+    def getReadyMessage(self, message):
+        """
+        Auxiliary method that returns a random message on .ready
+        """
+        mention = message.author.mention
+        options = [
+            f"¡Perfecto, {mention}!",
+            f"No esperaba menos, {mention}.",
+            f"¿Estás seguro de que no tienes otras cosas a hacer, {mention}?",
+            f"¡Genial, {mention}!",
+            f"Más te vale dibujar bien, {mention}.",
+            f"🇦🇷 🇦🇷 🇦🇷 🇦🇷 🇦🇷 🇦🇷 🇦🇷 🇦🇷 🇦🇷 🇦🇷 🇦🇷 🇦🇷 🇦🇷",
+        ]
+        return options[random.randint(0, len(options) - 1)]
 
     def messageUnready(self, message):
         """
@@ -160,6 +178,20 @@ class Skribbot(discord.Client):
     # **************************************
     #      G A M E     M A N A G E M E N T
     # **************************************
+
+    async def messageReplay(self, message):
+
+        if self.pinturillo:
+            self.pinturillo.quit()
+
+        await message.channel.send("Creando nueva sala...")
+        self.pinturillo = Pinturillo(roomConfig=self.roomConfig)
+        self.pinturillo.run()
+
+        self.oldURL = ""
+        
+        return f'¡Oído cocina! Aquí tienes el enlace de la nueva sala: {self.pinturillo.URL}'
+        
 
     def messageLink(self, message):
         """
@@ -376,6 +408,7 @@ class Skribbot(discord.Client):
             "```\n"
             "**GAME MANAGEMENT**\n"
             "```"
+            ".replay : Crea una nueva sala, independientemente de la gente que haya en .ready\n\n"
             ".link  : Muestra el enlace de la partida que va a empezar (o la en curso)\n\n"
             ".start : Empieza la partida de la sala, y echa al bot de ella. ¡Espera a que entren todos!"
             "```\n"
