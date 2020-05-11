@@ -59,7 +59,11 @@ class Pinturillo():
         URL = self.driver.find_element_by_xpath('//*[@id="invite"]')
         self.URL = URL.get_attribute("value")
 
+    
     def roomConfiguration(self):
+        """
+        Updates the room config (present or future)
+        """
         # Rounds
         roundsSelector = Select(self.driver.find_element_by_xpath('//*[@id="lobbySetRounds"]'))
         roundsSelector.select_by_visible_text(str(self.roomConfig['rounds']))
@@ -87,11 +91,17 @@ class Pinturillo():
             onlyCustomsBox.click()
         
     def readCustoms(self):
+        """
+        Returns the customs from file
+        """
         with open('customs.txt', encoding="utf-8") as f:
             self.customs = f.read()
         return self.customs
     
     def startGame(self):
+        """
+        Clicks button to start game, then quits.
+        """
         startGameButton = self.driver.find_element_by_xpath('//*[@id="buttonLobbyPlay"]')
         startGameButton.click()
         sleep(0.5)

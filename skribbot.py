@@ -38,11 +38,15 @@ class Skribbot(discord.Client):
         )
 
     async def on_message(self, message):
+        """
+        Handles what to do after receiving a message, based on its content
+        """
         if message.author == self.user:
             return
         
         response = ""
 
+        # MENSAJES EXACTOS
         if message.content == '.ready':
             response = await self.messageReady(message)
 
@@ -58,9 +62,14 @@ class Skribbot(discord.Client):
         elif message.content == ".start":
             response = self.messageStart(message)
 
-        # elif message.content == ".customs":
-        # response = self.getCustoms()
+        elif message.content == ".valorar":
+            response = self.messageValorar()
         
+        elif message.content == ".impugno":
+            response = self.messageImpugno()
+        
+
+        # VARIABLES        
         elif message.content.startswith(".config"):
             response = self.messageConfig(message)
         
@@ -70,7 +79,10 @@ class Skribbot(discord.Client):
         if response:
             await message.channel.send(response)
                         
-
+    # **************************************
+    #     R E A D Y    &    U N R E A D Y
+    # **************************************
+    
     async def messageReady(self, message):
         """
         Handles the action if the message received was .ready
@@ -99,6 +111,16 @@ class Skribbot(discord.Client):
                 response += " Ya somos {}/{}".format(len(self.readyList), self.minimo)
         return response
 
+    def addReady(self, user):
+        """
+        Auxiliary method that adds a user to the readyList. Returns True if added,
+        and False if it was already there
+        """
+        if user not in self.readyList:
+            self.readyList.append(user)
+            return True
+        return False
+
     def messageUnready(self, message):
         """
         Handles the message if the content was ".unready"
@@ -110,7 +132,27 @@ class Skribbot(discord.Client):
             response = "Pero si no habías hecho ready, so merluzo."
         return response
 
+    def messageReadyList(self, message):
+        """
+        Returns the list of people that are Ready
+        """
+        if not self.readyList:
+            response = "No hay nadie todavía."
+        else:
+            readyPeople = [person.name for person in self.readyList]
+            stringPeople = ", ".join(readyPeople)
+            response = "Gente ready: {}.".format(stringPeople)
+        return response
+
+
+    # **************************************
+    #      G A M E     M A N A G E M E N T
+    # **************************************
+
     def messageLink(self, message):
+        """
+        Returns current link (or previous, if the game has already started)
+        """
         if self.pinturillo is None or not self.pinturillo.URL:
             if not self.oldURL:
                 response = f"Aún no he abierto ninguna sala..."
@@ -121,16 +163,10 @@ class Skribbot(discord.Client):
             response  = "Aquí tienes: {}".format(self.pinturillo.URL)
         return response
 
-    def messageReadyList(self, message):
-        if not self.readyList:
-            response = "No hay nadie todavía."
-        else:
-            readyPeople = [person.name for person in self.readyList]
-            stringPeople = ", ".join(readyPeople)
-            response = "Gente ready: {}.".format(stringPeople)
-        return response
-
     def messageStart(self, message):
+        """
+        Handles the start of the game (emptying the readyList, and closing the browser window)
+        """
         if self.pinturillo is None:
             return "Start qué, si no aún no hay nada preparado... Haz .ready anda"
         
@@ -144,8 +180,45 @@ class Skribbot(discord.Client):
             return"¡A jugarrrr~!"
         
         return "Estoy yo solo todavía, espera a que entre la gente"
+    
+    # ***********************************
+    #             B R O M A S
+    # ***********************************
+
+    def messageImpugno(self):
+        """
+        Handles the messages of impugnación of games
+        """
+        opciones = [
+            "Colorín, colorado, este game está impugnado.",
+            "Esta partida queda oficialmente impugnada.",
+        ]
+        return opciones[random.randint(0, len(opciones) - 1 )]
+
+    def messageValorar(self):
+        """
+        Handles the valorations of screenshots
+        """
+        opciones = [
+            "Un dibujo terrible, 0/10",
+            "Mi sobrino de 3 años lo haría mejor, 2/10",
+            "Se puede llegar a sacar, pero me faltan tres cervezas, 4/10",
+            "Decente (para ser tú), 6/10",
+            "Oye pues ni tan mal,  8/10",
+            "Yo de ti lo pondría en el currículum, 10/10"
+        ]
+        
+        return opciones[random.randint(0,5)]        
+
+
+    #  **********************************
+    #     C O N F I G U R A T I O N
+    #  **********************************
 
     def messageConfig(self, message):
+        """
+        Handles explicit configuration. If no other parameters, the current config is shown.
+        """
         words = message.content.split(" ")
         words.remove(".config")
 
@@ -189,6 +262,9 @@ class Skribbot(discord.Client):
         return "Configuration updated!"
     
     def messageShortConfig(self, message):
+        """
+        Handles configuration of only one parameter
+        """
         if len(message.content.split(' ')) == 1:
             key = message.content.split(' ')[0][1:].lower()
             return self.getParam(key)
@@ -207,6 +283,9 @@ class Skribbot(discord.Client):
         return f'{value.capitalize} is not a valid value for {key}'
 
     def setConfig(self, key, value, newConfig):
+        """
+        Auxiliary method that sets a configuration to the state
+        """
         YES_OPTIONS = ("true", "si", "yes", "sí")
         NO_OPTIONS = ("false", "no")
 
@@ -252,40 +331,22 @@ class Skribbot(discord.Client):
         
         return False
         
-
     def getCurrentConfig(self):
+        """
+        Auxiliary method that gets current configuration
+        """
         response = "\n**__Current configuration:__**\n"
         for key, value in self.roomConfig.items():
             response += f"**{key.capitalize()}**: _{value}_\n"
         return response
 
     def getParam(self, key):
+        """
+        Auxiliary method that returns the configuration of a given parameter.
+        """
         value = self.minimo if key == 'minimo' else self.roomConfig[key]
         return f'**{key.capitalize()}:** _{value}_'
 
-
-    def addReady(self, user):
-        if user not in self.readyList:
-            self.readyList.append(user)
-            return True
-        return False
-    
-    # def getCustoms(self):
-    #     if self.pinturillo.customs:
-    #         customs = self.pinturillo.customs
-    #     elif self.pinturillo:
-    #         customs = self.pinturillo.readCustoms()
-    #     else:
-    #         return []
-        
-    #     if len(customs) < 1999:
-    #         return [f"```{customs}```"]
-        
-    #     list(map(strip, customs.split(',')))
-
-        
-        
-        
 
 client = Skribbot()
 client.run(TOKEN)
