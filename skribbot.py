@@ -13,7 +13,7 @@ from pinturillo import Pinturillo
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
-VERSION =  "v1.2"
+VERSION =  "v1.3"
 
 class Skribbot(discord.Client):
 
@@ -59,6 +59,9 @@ class Skribbot(discord.Client):
 
         elif message.content == '.readyList':
             response = self.messageReadyList(message)
+        
+        elif message.content == '.voz':
+            response = self.messageVoz(message)
         
         elif message.content== '.replay':
             response = await self.messageReplay(message)
@@ -173,7 +176,26 @@ class Skribbot(discord.Client):
             stringPeople = ", ".join(readyPeople)
             response = "Gente ready: {}.".format(stringPeople)
         return response
+    
+    def messageVoz(self, message):
+        """
+        Mentions everyone who is in the readyList
+        """
+        if not self.readyList:
+            return "Ve tú si quieres, pero no hay nadie más..."
+        
+        guild = message.guild
+        inVoiceChannel = [member for voice_channel in guild.voice_channels for member in voice_channel.members]
+        rezagados = [member for member in self.readyList if member not in inVoiceChannel]
 
+        if rezagados:
+            response = f"¡Ya estáis tardando en entrar al chat de voz!"
+            for member in rezagados:
+                response += f" {member.mention}"
+        else:
+            response = f"¡Pero si ya estáis todos! Deja de escribir, anda, que ya tenemos todos micro."
+        
+        return response
 
     # **************************************
     #      G A M E     M A N A G E M E N T
@@ -405,6 +427,7 @@ class Skribbot(discord.Client):
             ".readyone : Lo mismo que el .ready, pero con un @everyone. Usar con moderación.\n\n"
             ".unready : Te elimina de la lista de gente lista para jugar. \n\n"
             ".readyList : Muestra la gente que está ready.\n\n"
+            ".voz : Mención a gente que ha hecho ready pero no está en voz."
             "```\n"
             "**GAME MANAGEMENT**\n"
             "```"
