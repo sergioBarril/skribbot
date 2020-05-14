@@ -35,30 +35,45 @@ class Pinturillo():
         self.URL = ""
 
 
-    def run(self):
+    def run(self, URL='https://skribbl.io/'):
         # Open Skribbl.io
-        self.driver.get('https://skribbl.io/')
-        
-        # Accept Cookies
-        # cookiesButton = self.driver.find_element_by_xpath('/html/body/div[2]/div/a[2]')
-        # cookiesButton.click()
+        self.driver.get(URL)
 
         # Add a name
         nameInput = self.driver.find_element_by_xpath('//*[@id="inputName"]')
         nameInput.send_keys('Skribbot')
 
+        createMode = URL == 'https://skribbl.io/'
+
+        if createMode:
+            self.create_room()
+        else:
+            self.join_game()
+        
+
+    def create_room(self):
         # Create a Private Room
         privateRoomButton = self.driver.find_element_by_xpath('//*[@id="buttonLoginCreatePrivate"]')
         privateRoomButton.click()
         sleep(2)
-
+        
         # Configuration
         self.roomConfiguration()
-
+        
         # Get URL
         URL = self.driver.find_element_by_xpath('//*[@id="invite"]')
         self.URL = URL.get_attribute("value")
+    
+    def join_game(self):
+        #Click play
+        playButton = self.driver.find_element_by_xpath('//*[@id="formLogin"]/button[1]')
+        playButton.click()
+        sleep(1)
 
+    def type_in_chat(self, message):
+        chatInput = self.driver.find_element_by_xpath('//*[@id="inputChat"]')
+        chatInput.send_keys(message)
+        chatInput.submit()
     
     def roomConfiguration(self):
         """
