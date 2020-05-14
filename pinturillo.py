@@ -3,6 +3,7 @@ from time import sleep
 import asyncio
 
 from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -73,7 +74,7 @@ class Pinturillo():
     def type_in_chat(self, message):
         chatInput = self.driver.find_element_by_xpath('//*[@id="inputChat"]')
         chatInput.send_keys(message)
-        chatInput.submit()
+        chatInput.send_keys(Keys.RETURN)
     
     def roomConfiguration(self):
         """

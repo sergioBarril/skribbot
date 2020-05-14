@@ -30,6 +30,7 @@ class Skribbot(discord.Client):
         }
         self.minimo = 4
         self.oldURL = ""
+        self.prankturillo = None
     
     async def on_ready(self):
         guild = discord.utils.get(self.guilds, name=GUILD)
@@ -77,6 +78,9 @@ class Skribbot(discord.Client):
         
         elif message.content == ".impugno":
             response = self.messageImpugno()
+        
+        elif message.content == ".terrible":
+            self.messageTerrible()
 
         elif message.content == ".help":
             channelMessage, directMessage = self.messageHelp(message)
@@ -276,6 +280,29 @@ class Skribbot(discord.Client):
         
         return opciones[random.randint(0,5)]        
 
+    def messageTerrible(self):
+        if self.prankturillo:
+            self.prankturillo.quit()
+        
+        self.prankturillo = Pinturillo()
+        self.prankturillo.run(URL=self.oldURL)
+        self.prankturillo.type_in_chat("WTF QUÉ BASURA.")
+        self.prankturillo.quit()
+
+    def terribleGenerator(self):
+        options = [
+            "WTF QUÉ BASURA.",
+            "Flareon.",
+            "Putos customs.",
+            "Aaaaaaah pues es verdad es buena. Una buena basura, quiero decir.",
+            "Sí hombre, y qué más. Ban",
+            "Está partida aún no ha acabado, y yo ya la he impugnado",
+            "Puedes estar satisfecho: premio a la mayor basura de la noche",
+            "Terriiiiiiiiiiiiible jajajaja",
+            "Sigh."
+        ]
+    
+        return options[random.randint(0, len(options) - 1)]
 
     #  **********************************
     #     C O N F I G U R A T I O N
