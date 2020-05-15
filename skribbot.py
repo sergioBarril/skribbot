@@ -223,14 +223,15 @@ class Skribbot(discord.Client):
         """
         Returns current link (or previous, if the game has already started)
         """
-        if self.pinturillo is None or not self.pinturillo.URL:
-            if not self.oldURL:
-                response = f"Aún no he abierto ninguna sala..."
-            else:
-                response = f"La última vez los dejé en {self.oldURL}... ¿Si corres quizá los pillas?"
-
-        if len(self.readyList) >= self.minimo:
+        if self.pinturillo and self.pinturillo.URL:
             response  = "Aquí tienes: {}".format(self.pinturillo.URL)
+
+        elif not self.oldURL:
+            response = f"Aún no he abierto ninguna sala..."
+
+        else:
+            response = f"La última vez los dejé en {self.oldURL}... ¿Si corres quizá los pillas?"
+            
         return response
 
     def messageStart(self, message):
@@ -286,7 +287,7 @@ class Skribbot(discord.Client):
         
         self.prankturillo = Pinturillo()
         self.prankturillo.run(URL=self.oldURL)
-        self.prankturillo.type_in_chat("WTF QUÉ BASURA.")
+        self.prankturillo.type_in_chat(self.terribleGenerator())
         self.prankturillo.quit()
 
     def terribleGenerator(self):
