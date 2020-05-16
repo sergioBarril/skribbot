@@ -30,7 +30,6 @@ class Skribbot(discord.Client):
         }
         self.minimo = 4
         self.oldURL = ""
-        self.prankturillo = None
     
     async def on_ready(self):
         guild = discord.utils.get(self.guilds, name=GUILD)
@@ -72,6 +71,14 @@ class Skribbot(discord.Client):
 
         elif message.content == ".start":
             response = self.messageStart(message)
+        
+        elif message.content == ".screenshot":
+            filename = self.messageScreenshot(message)
+            try:
+                await message.channel.send(file=discord.File(f'{filename}'))
+                os.remove(filename)
+            except:
+                response = "Error."
 
         elif message.content == ".valorar":
             response = self.messageValorar()
@@ -80,7 +87,7 @@ class Skribbot(discord.Client):
             response = self.messageImpugno()
         
         elif message.content == ".terrible":
-            self.messageTerrible()
+            self.messageTerrible(message)
 
         elif message.content == ".help":
             channelMessage, directMessage = self.messageHelp(message)
@@ -88,7 +95,10 @@ class Skribbot(discord.Client):
             await message.author.send(directMessage)
         
 
-        # VARIABLES        
+        # VARIABLES
+        elif message.content.startswith(".oldUrl"):
+            self.setOldUrl(message)
+
         elif message.content.startswith(".config"):
             response = self.messageConfig(message)
         
@@ -252,6 +262,14 @@ class Skribbot(discord.Client):
         
         return "Estoy yo solo todavía, espera a que entre la gente"
     
+    def messageScreenshot(self, message):
+        auxBot = Pinturillo()
+        auxBot.run(self.oldURL)
+        
+        filename = auxBot.screenshot()
+        auxBot.quit()
+        return filename
+
     # ***********************************
     #             B R O M A S
     # ***********************************
@@ -263,6 +281,10 @@ class Skribbot(discord.Client):
         opciones = [
             "Colorín, colorado, este game está impugnado.",
             "Esta partida queda oficialmente impugnada.",
+            "Es que con customs no puedo.",
+            "Puto teclado que se me ha quedado pillado.",
+            "Es que tengo los dedos de mantequilla.",
+            "Está claro: me he dejado.",            
         ]
         return opciones[random.randint(0, len(opciones) - 1 )]
 
@@ -272,25 +294,27 @@ class Skribbot(discord.Client):
         """
         opciones = [
             "Un dibujo terrible, 0/10",
+            "Por culpa de este dibujo seguimos en Fase 0, 1/10",
             "Mi sobrino de 3 años lo haría mejor, 2/10",
+            "Menudo puro, 3/10",
             "Se puede llegar a sacar, pero me faltan tres cervezas, 4/10",
+            "Venga, aprobado porque no te quiero volver a ver el año que viene. 5/10"
             "Decente (para ser tú), 6/10",
+            "Parecía malo, fue peor, pero al menos lo acerté yo. 7/10"
             "Oye pues ni tan mal,  8/10",
+            "Es tan malo que es hasta bueno, 9/10",
             "Yo de ti lo pondría en el currículum, 10/10"
         ]
         
-        return opciones[random.randint(0,5)]        
+        return opciones[random.randint(0, len(opciones) - 1)]
 
-    def messageTerrible(self):
-        if self.prankturillo:
-            self.prankturillo.quit()
-        
-        self.prankturillo = Pinturillo()
-        self.prankturillo.run(URL=self.oldURL)
-        self.prankturillo.type_in_chat(self.terribleGenerator())
-        self.prankturillo.quit()
+    def messageTerrible(self, message):              
+        prankturillo = Pinturillo()
+        prankturillo.run(URL=self.oldURL)
+        prankturillo.type_in_chat(self.terribleGenerator(message))
+        prankturillo.quit()
 
-    def terribleGenerator(self):
+    def terribleGenerator(self, message):
         options = [
             "WTF QUÉ BASURA.",
             "Flareon.",
@@ -300,7 +324,11 @@ class Skribbot(discord.Client):
             "Está partida aún no ha acabado, y yo ya la he impugnado",
             "Puedes estar satisfecho: premio a la mayor basura de la noche",
             "Terriiiiiiiiiiiiible jajajaja",
-            "Sigh."
+            "Sigh.",
+            "Acertar esto era más difícil que gimpear a GaW",
+            "Yikes...",
+            "Mira, mejor me callo...",
+            f"'{message.author.name}' is voting to kick este matao (1/2)",
         ]
     
         return options[random.randint(0, len(options) - 1)]
@@ -440,6 +468,10 @@ class Skribbot(discord.Client):
         """
         value = self.minimo if key == 'minimo' else self.roomConfig[key]
         return f'**{key.capitalize()}:** _{value}_'
+
+    def setOldUrl(self, message):
+        mensaje = message.split(' ')
+        self.oldURL = mensaje[1].strip()
 
     # *********************************
     #            H E L P

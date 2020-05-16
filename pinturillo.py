@@ -1,11 +1,14 @@
 from time import sleep
 
 import asyncio
+import random
 
 from selenium import webdriver
+from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 
 class Pinturillo():
@@ -40,11 +43,21 @@ class Pinturillo():
         # Open Skribbl.io
         self.driver.get(URL)
 
+        createMode = URL == 'https://skribbl.io/'
+
+        # Accept Cookies
+        if not createMode:
+            try:
+                cookiesButton = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, '/html/body/div[2]/div/a[2]'))
+                )
+                cookiesButton.click()
+            except:
+                print("Error al aceptar las cookies.")
+
         # Add a name
         nameInput = self.driver.find_element_by_xpath('//*[@id="inputName"]')
         nameInput.send_keys('Skribbot')
-
-        createMode = URL == 'https://skribbl.io/'
 
         if createMode:
             self.create_room()
@@ -72,9 +85,14 @@ class Pinturillo():
         sleep(1)
 
     def type_in_chat(self, message):
-        chatInput = self.driver.find_element_by_xpath('//*[@id="inputChat"]')
-        chatInput.send_keys(message)
-        chatInput.send_keys(Keys.RETURN)
+        try:
+            chatInput = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[@id="inputChat"]'))
+            )
+            chatInput.send_keys(message)
+            chatInput.send_keys(Keys.RETURN)
+        finally:
+            self.quit()
     
     def roomConfiguration(self):
         """
@@ -127,6 +145,12 @@ class Pinturillo():
         self.driver.quit()
         return True
     
+    def screenshot(self):
+        filename = f'{random.randint(0,5000)}.png'
+        self.driver.save_screenshot(filename)
+
+        return filename
+
     def quit(self):
         """
         Closes the ChromeDrive
