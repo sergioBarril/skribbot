@@ -15,7 +15,6 @@ from pinturillo import Pinturillo
 
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-GUILD = os.getenv('DISCORD_GUILD')
 
 class Skribbot(commands.Bot):
     VERSION =  "v1.3"

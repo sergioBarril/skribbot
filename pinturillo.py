@@ -1,5 +1,6 @@
 from time import sleep
 
+import os
 import asyncio
 import random
 
@@ -10,10 +11,18 @@ from selenium.webdriver.support.ui import Select
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+def chrome_options():
+    options = webdriver.ChromeOptions()
+    options.binary_location = os.environ.get("GOOGLE_CHROME_BIN")
+    options.add_argument("--headless")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--no-sandbox")
+
+    return options
 
 class Pinturillo():
     def __init__(self, room_config = None):
-        self.driver = webdriver.Chrome('driver/chromedriver.exe')
+        self.driver = webdriver.Chrome(executable_path=os.environ.get("CHROMEDRIVER_PATH"), chrome_options=chrome_options())
         
         if room_config is not None:
             self.room_config = room_config

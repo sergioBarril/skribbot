@@ -5,4 +5,4 @@ pinturilloEnv/
 *.env
 *.log
 
-customs.txt
+#customs.txt
