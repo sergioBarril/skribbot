@@ -3,6 +3,9 @@ import os
 
 import random
 import discord
+
+from discord.ext import tasks, commands
+
 from dotenv import load_dotenv
 
 from asyncio import sleep
@@ -14,339 +17,44 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 GUILD = os.getenv('DISCORD_GUILD')
 
-class Skribbot(discord.Client):
+class Skribbot(commands.Bot):
+    VERSION =  "v1.3"
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, command_prefix):
+        super().__init__(command_prefix)
         self.pinturillo = None
-        self.readyList  = []
-        self.roomConfig = {
-            "customs" : True,
-            "language" : "Spanish",
-            "rounds"  : 4,
-            "drawTime" : 80,
-            "onlyCustoms" : False,
-        }
+        self.ready_list  = []
         self.minimo = 4
-        self.oldURL = ""
+        self.old_URL = ""
     
+    def set_pinturillo(self):
+        room_config = self.get_cog('Config').room_config
+        self.pinturillo = Pinturillo(room_config=room_config)
+    
+    def update_config(self):
+        room_config = self.get_cog('Config').room_config
+        self.pinturillo.update_config(room_config=room_config)
+
+    def new_pinturillo(self):
+        return Pinturillo()
+
+
     async def on_ready(self):
-        guild = discord.utils.get(self.guilds, name=GUILD)
-        print(
-            f'{self.user} is connected to the following guild:\n'
-            f'{guild.name}(id: {guild.id})'
-        )
+         print("The bot is ready!")
 
-    async def on_message(self, message):
-        """
-        Handles what to do after receiving a message, based on its content
-        """
-        if message.author == self.user:
-            return
-        
-        response = ""
+    #     elif message.content == ".help":
+    #         channelMessage, directMessage = self.messageHelp(message)
+    #         response = channelMessage
+    #         await message.author.send(directMessage)
 
-        # MENSAJES EXACTOS
-        if message.content == '.ready':
-            response = await self.messageReady(message)
+    # # @tasks.loop(hours=24)
+    # # async def printer(self):
 
-        elif message.content == '.unready':
-            response = self.messageUnready(message)
-        
-        elif message.content == '.link':
-            response = self.messageLink(message)
-
-        elif message.content == '.readyList':
-            response = self.messageReadyList(message)
-
-        elif message.content == ".start":
-            response = self.messageStart(message)
-
-        elif message.content == ".valorar":
-            response = self.messageValorar()
-        
-        elif message.content == ".impugno":
-            response = self.messageImpugno()
-        
-
-        # VARIABLES        
-        elif message.content.startswith(".config"):
-            response = self.messageConfig(message)
-        
-        elif message.content.split(' ')[0][1:] in Pinturillo.VALID_CONFIG_KEYS:
-            response = self.messageShortConfig(message)
-
-        if response:
-            await message.channel.send(response)
-                        
-    # **************************************
-    #     R E A D Y    &    U N R E A D Y
-    # **************************************
-    
-    async def messageReady(self, message):
-        """
-        Handles the action if the message received was .ready
-        """
-        response = ""
-      
-        # FIRST MESSAGE
-        if self.pinturillo is None:
-            self.pinturillo = Pinturillo(roomConfig = self.roomConfig)
-            self.addReady(message.author)
-            response = "Venga va, ¿quién más se apunta? ¡Ya hay 1/{}! @everyone".format(self.minimo)
-
-        # IF NOT ADDED ALREADY
-        elif self.addReady(message.author):
-            response = "¡Perfecto, {}!".format(message.author.mention)
-
-            if len(self.readyList) >= self.minimo:
-                response += " ¡Somos suficientes para que no dé pena!"
-                if not self.pinturillo.URL:
-                    self.pinturillo.URL = "Loading"
-                    await message.channel.send("Cargando sala...")
-                    self.pinturillo.run()
-                    response += " Aquí tenéis el enlace: {}".format(self.pinturillo.URL)
-                
-            else:
-                response += " Ya somos {}/{}".format(len(self.readyList), self.minimo)
-        return response
-
-    def addReady(self, user):
-        """
-        Auxiliary method that adds a user to the readyList. Returns True if added,
-        and False if it was already there
-        """
-        if user not in self.readyList:
-            self.readyList.append(user)
-            return True
-        return False
-
-    def messageUnready(self, message):
-        """
-        Handles the message if the content was ".unready"
-        """
-        if message.author in self.readyList:
-            self.readyList.remove(message.author)
-            response = "Terrible, {}. Eso es porque tienes miedo...".format(message.author.name)
-        else:
-            response = "Pero si no habías hecho ready, so merluzo."
-        return response
-
-    def messageReadyList(self, message):
-        """
-        Returns the list of people that are Ready
-        """
-        if not self.readyList:
-            response = "No hay nadie todavía."
-        else:
-            readyPeople = [person.name for person in self.readyList]
-            stringPeople = ", ".join(readyPeople)
-            response = "Gente ready: {}.".format(stringPeople)
-        return response
-
-
-    # **************************************
-    #      G A M E     M A N A G E M E N T
-    # **************************************
-
-    def messageLink(self, message):
-        """
-        Returns current link (or previous, if the game has already started)
-        """
-        if self.pinturillo is None or not self.pinturillo.URL:
-            if not self.oldURL:
-                response = f"Aún no he abierto ninguna sala..."
-            else:
-                response = f"La última vez los dejé en {self.oldURL}... ¿Si corres quizá los pillas?"
-
-        if len(self.readyList) >= self.minimo:
-            response  = "Aquí tienes: {}".format(self.pinturillo.URL)
-        return response
-
-    def messageStart(self, message):
-        """
-        Handles the start of the game (emptying the readyList, and closing the browser window)
-        """
-        if self.pinturillo is None:
-            return "Start qué, si no aún no hay nada preparado... Haz .ready anda"
-        
-        if not self.pinturillo.URL or self.pinturillo.URL == "Loading...":
-            return "Aún no estamos en la sala, cálmate y dale a .ready si no lo has hecho ya"
-        
-        if self.pinturillo.startGame():
-            self.oldURL = self.pinturillo.URL
-            self.pinturillo = None
-            self.readyList = []
-            return"¡A jugarrrr~!"
-        
-        return "Estoy yo solo todavía, espera a que entre la gente"
-    
-    # ***********************************
-    #             B R O M A S
-    # ***********************************
-
-    def messageImpugno(self):
-        """
-        Handles the messages of impugnación of games
-        """
-        opciones = [
-            "Colorín, colorado, este game está impugnado.",
-            "Esta partida queda oficialmente impugnada.",
-        ]
-        return opciones[random.randint(0, len(opciones) - 1 )]
-
-    def messageValorar(self):
-        """
-        Handles the valorations of screenshots
-        """
-        opciones = [
-            "Un dibujo terrible, 0/10",
-            "Mi sobrino de 3 años lo haría mejor, 2/10",
-            "Se puede llegar a sacar, pero me faltan tres cervezas, 4/10",
-            "Decente (para ser tú), 6/10",
-            "Oye pues ni tan mal,  8/10",
-            "Yo de ti lo pondría en el currículum, 10/10"
-        ]
-        
-        return opciones[random.randint(0,5)]        
-
-
-    #  **********************************
-    #     C O N F I G U R A T I O N
-    #  **********************************
-
-    def messageConfig(self, message):
-        """
-        Handles explicit configuration. If no other parameters, the current config is shown.
-        """
-        words = message.content.split(" ")
-        words.remove(".config")
-
-        newConfig = self.roomConfig.copy()
-
-        if not words:
-            return self.getCurrentConfig()
-        
-        for word in words:
-            param = word.lower()
-
-            # Explicit parameters
-            if '=' in param:
-                key, value = param.split("=")
-                self.setConfig(key, value, newConfig)
-
-            # Direct language edit
-            if 'spanish' == param or 'español' == param:
-                newConfig['language'] = 'Spanish'
-            if 'english' == param or 'inglés' == param or 'ingles' == param:
-                newConfig['language'] = 'English'
-            
-            # Direct customs edit
-            if 'customs' == param:
-                newConfig['customs'] = True
-            if 'nocustoms' == param or "sincustoms" == param:
-                newConfig['customs'] = False
-            
-            # Direct onlycustoms edit
-            if 'onlycustoms' == param:
-                newConfig['onlyCustoms'] = True
-            if 'mixto' == param:
-                newConfig['onlyCustoms'] = False
-        
-        self.roomConfig = newConfig
-
-        if self.pinturillo is not None and self.pinturillo.URL:
-            self.pinturillo.roomConfig = self.roomConfig
-            self.pinturillo.roomConfiguration()
-        
-        return "Configuration updated!"
-    
-    def messageShortConfig(self, message):
-        """
-        Handles configuration of only one parameter
-        """
-        if len(message.content.split(' ')) == 1:
-            key = message.content.split(' ')[0][1:].lower()
-            return self.getParam(key)
-        else:
-            key, value = message.content.split(' ')
-            key = key[1:].lower()
-        
-        isUpdated = self.setConfig(key, value, self.roomConfig)
-
-        if isUpdated:
-            if self.pinturillo is not None and self.pinturillo.URL:
-                self.pinturillo.roomConfig = self.roomConfig
-                self.pinturillo.roomConfiguration()
-            return f'{key.capitalize()} updated to {value}.'
-        
-        return f'{value.capitalize} is not a valid value for {key}'
-
-    def setConfig(self, key, value, newConfig):
-        """
-        Auxiliary method that sets a configuration to the state
-        """
-        YES_OPTIONS = ("true", "si", "yes", "sí")
-        NO_OPTIONS = ("false", "no")
-
-        if key == 'language':
-            language = value.capitalize()
-            if language in Pinturillo.VALID_LANGUAGES:
-                newConfig['language'] = language
-                return True
-
-        if key == 'rounds':
-            if value in Pinturillo.VALID_ROUNDS:
-                newConfig['rounds'] = int(value)
-                return True
-        
-        if key == 'customs':
-            isCustoms = value.lower()
-            if isCustoms in YES_OPTIONS:
-                newConfig['customs'] = True
-                return True
-            elif isCustoms in NO_OPTIONS:
-                newConfig['customs'] = False
-                return True
-        
-        if key == 'onlycustoms':
-            isCustoms = value.lower()
-            if isCustoms in YES_OPTIONS:
-                newConfig['onlyCustoms'] = True
-                return True
-            elif isCustoms in NO_OPTIONS:
-                newConfig['onlyCustoms'] = False
-                return True
-        
-        if key == 'drawtime':
-            if value in Pinturillo.VALID_DRAWTIME:
-                newConfig['drawTime'] = int(value)
-                return True
-
-        if key == 'minimo':
-            if value.isdigit():
-                self.minimo = int(value)
-                return True
-
-        
-        return False
-        
-    def getCurrentConfig(self):
-        """
-        Auxiliary method that gets current configuration
-        """
-        response = "\n**__Current configuration:__**\n"
-        for key, value in self.roomConfig.items():
-            response += f"**{key.capitalize()}**: _{value}_\n"
-        return response
-
-    def getParam(self, key):
-        """
-        Auxiliary method that returns the configuration of a given parameter.
-        """
-        value = self.minimo if key == 'minimo' else self.roomConfig[key]
-        return f'**{key.capitalize()}:** _{value}_'
-
-
-client = Skribbot()
+client = Skribbot(command_prefix=["."])
+client.remove_command('help')
+client.load_extension('cogs.ReadyCommands')
+client.load_extension('cogs.Config')
+client.load_extension('cogs.GameManagement')
+client.load_extension('cogs.JokeCommands')
+client.load_extension('cogs.OtherCommands')
 client.run(TOKEN)
